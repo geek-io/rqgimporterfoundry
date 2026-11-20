@@ -34,6 +34,10 @@
         <p class="hint">New world compendiums are grouped in a sidebar folder named after the book, one compendium per type, entries in alphabetical order. Choosing an existing compendium (for example your compendium module) puts the entries in Book &gt; Type folders inside it.</p>
       </details>
       <label class="rqgi-check"><input type="checkbox" data-field="overwrite" {{checked state.overwrite}}> Replace entries already imported from this book</label>
+      {{#if hasCompendium}}
+      <label class="rqgi-check"><input type="checkbox" data-field="useCompendium" {{checked state.useCompendium}}> Use the RuneQuest Compendium for content it already has</label>
+      <p class="hint">Spells, skills, cults, Runes, gear and NPCs the RuneQuest: Glorantha Compendium module already holds aren't imported again. NPCs use its items, and the adventure text links to its actors.</p>
+      {{/if}}
     </fieldset>
 
     <div class="rqgi-actions">

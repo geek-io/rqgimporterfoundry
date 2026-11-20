@@ -6,6 +6,7 @@ import { buildDocument } from "../core/layout.js";
 import { parseBook } from "../core/parsers.js";
 import { readFileToModel } from "./pdf-reader.js";
 import { BookWriter } from "./writer.js";
+import { compendiumActive } from "./compendium-link.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -54,6 +55,7 @@ export class RqgImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
       to: "",
       detectFonts: true,
       overwrite: true,
+      useCompendium: true,
       kinds: Object.fromEntries(KIND_ORDER.map((k) => [k, k !== "chapter"])),
       targets: { Item: "new", Actor: "new", JournalEntry: "new" },
       entities: null,
@@ -96,6 +98,7 @@ export class RqgImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
       journalPacks: packOptions("JournalEntry"),
       groups,
       hasEntities: !!s.entities,
+      hasCompendium: compendiumActive(),
       totalSelected: groups.reduce((n, g) => n + (g.enabled ? g.selected : 0), 0),
       progressPct: s.progress ? Math.round((100 * s.progress.done) / Math.max(1, s.progress.total)) : 0,
     };
@@ -225,6 +228,7 @@ export class RqgImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
         {
           targets: s.targets,
           overwrite: s.overwrite,
+          useCompendium: s.useCompendium,
           log: (m) => {
             this.#log(m);
             s.progress = { ...(s.progress || {}), label: m };
@@ -237,9 +241,11 @@ export class RqgImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
         },
       );
       const sum = await writer.write(list);
-      this.#log(`Done: ${sum.created} created, ${sum.updated} replaced, ${sum.skipped} skipped, in ${[...sum.packs].join("; ")}.`);
+      const where = sum.packs.size ? `, in ${[...sum.packs].join("; ")}` : "";
+      this.#log(`Done: ${sum.created} created, ${sum.updated} replaced, ${sum.skipped} skipped, ${sum.linked} already in the RuneQuest Compendium${where}.`);
+      if (sum.linked) console.log(`${MODULE_ID} | linked to the RuneQuest Compendium:\n${sum.linkedNames.join("\n")}`);
       for (const w of sum.warnings) this.#log(`Warning: ${w}`);
-      ui.notifications.info(`RQG Importer: imported ${sum.created + sum.updated} documents from ${s.bookTitle}.`);
+      ui.notifications.info(`RQG Importer: imported ${sum.created + sum.updated} documents from ${s.bookTitle}${sum.linked ? `, linked ${sum.linked} to the RuneQuest Compendium` : ""}.`);
     } catch (err) {
       console.error(err);
       this.#log(`Error: ${err.message}`);

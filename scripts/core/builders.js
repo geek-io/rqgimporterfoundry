@@ -456,7 +456,9 @@ export function buildNpcPlan(book, e) {
 
   // Wanted items, resolved against compendiums in Foundry
   const wanted = [];
-  for (const a of d.attacks || []) {
+  for (const raw of d.attacks || []) {
+    // a footnote can follow the last row: "Spirit Combat *Blessed great axe does double damage"
+    const a = { ...raw, name: String(raw.name || "").replace(/\s+\*\D.*$/, "").trim() };
     if (/^spirit combat$/i.test(a.name)) {
       wanted.push({ type: "skill", name: "Spirit Combat", base: "Spirit Combat", spec: "", chance: a.chance, category: "magic" });
       continue;

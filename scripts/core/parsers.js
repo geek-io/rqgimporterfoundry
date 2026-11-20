@@ -799,7 +799,7 @@ export function parseCults(doc) {
 
 const collapse = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "");
 
-const CHAR_RE = /\b(STR|CON|SIZ|DEX|INT|POW|CHA)\s+(\d{1,3}|—|-)(?=\s|$|,)/g;
+const CHAR_RE = /\b(STR|CON|SIZ|DEX|INT|POW|CHA):?\s+(\d{1,3}|—|-)(?=\s|$|,|;)/g;
 
 const ATTACK_HDR = (l) => /^Weapons?\**\s+%\s+Damage/i.test(l.text);
 const HITLOC_HDR = (l) => /^Location\s+D20\s+(Armor|AP)\s*\/\s*HP/i.test(l.text);

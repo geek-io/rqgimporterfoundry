@@ -21,6 +21,17 @@ https://github.com/geek-io/rqgimporterfoundry/releases/latest/download/module.js
 
 Foundry checks the same URL for updates. Enable **RQG Book Importer** in a RuneQuest Glorantha (rqg) world under **Manage Modules**, then open it from the **RQG Book Importer** button in the Compendium sidebar.
 
+# v 0.1.5
+
+**Works with the RuneQuest: Glorantha Compendium.** If the *runequestcompendiumfoundry* module is active, the importer uses what it already holds instead of making copies.
+
+- **No duplicate rules content.** Spells, sorcery, cults, skills, Runes, weapons, armor and gear that the Compendium already has are skipped. They are matched by rqid first, then by name. A new Destination option, *Use the RuneQuest Compendium for content it already has*, turns this on or off; it is on by default. On the Core Rulebook, 565 entries now come from the Compendium and only the 48 it lacks are imported.
+- **NPCs link instead of repeating.** An NPC that the Compendium already has, with the same characteristics, isn't imported again. The adventure text links to the Compendium's actor instead: Vasana, Yanioth, Vishi Dunn and the other Core pregens. An adventure's own version of a creature, with different stats, is still imported as its own actor.
+- **NPCs use Compendium items.** Embedded skills, spells, Runes, cults and weapons come from the Compendium before other imported books. Passions now do too, keeping their subject, such as Love (Family).
+- **Weapons in stat blocks are found under their book names.** "1H Battleaxe" is now found as Battle Axe, "Medium Shield" as Wood Shield, Medium, and "1H Spear" as Short Spear. All weapons on the Darkness at Runegate and Stealing the Eye sheets now come from the Compendium.
+- **Fix:** "CHA: 15", written with a colon, was not read, so most Core NPCs had no Charisma.
+- **Fix:** a footnote after the last attack row no longer becomes part of the attack's name, such as "Spirit Combat *Blessed great axe does double damage".
+
 # v 0.1.4
 
 - First public release. The module can now be installed and updated from its manifest URL (see Installation above).

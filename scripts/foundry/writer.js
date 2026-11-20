@@ -17,6 +17,7 @@ import {
   needsJournal,
 } from "../core/builders.js";
 import { slugify } from "../core/layout.js";
+import { COMPENDIUM_ID, CompendiumLink } from "./compendium-link.js";
 
 const CHUNK = 40;
 
@@ -57,10 +58,11 @@ export class BookWriter {
     this.book = { ...book, importedAt: new Date().toISOString() };
     this.targets = options.targets || {};
     this.overwrite = options.overwrite ?? true;
+    this.useCompendium = options.useCompendium ?? true;
     this.onProgress = options.onProgress || (() => {});
     this.log = options.log || ((m) => console.log(`${MODULE_ID} | ${m}`));
     this.packCache = new Map();
-    this.summary = { created: 0, updated: 0, skipped: 0, packs: new Set(), warnings: [] };
+    this.summary = { created: 0, updated: 0, skipped: 0, linked: 0, linkedNames: [], packs: new Set(), warnings: [] };
     this.actorLinks = new Map(); // npc key -> @UUID link
   }
 
@@ -170,6 +172,14 @@ export class BookWriter {
 
   /** Main entry point: entities from parsers.parseBook(). */
   async write(entities) {
+    this.compendium = this.useCompendium ? await CompendiumLink.create() : null;
+    if (this.compendium) this.log(`Linking to the RuneQuest Compendium (${this.compendium.size} entries); content it already has is not imported again`);
+    const inCompendium = new Set(); // entity keys covered by the compendium
+    const linked = (e, hit) => {
+      inCompendium.add(e);
+      this.summary.linked++;
+      this.summary.linkedNames.push(`${e.name} → ${hit.name}`);
+    };
     const byKind = new Map();
     for (const e of entities) {
       if (!byKind.has(e.kind)) byKind.set(e.kind, []);
@@ -179,16 +189,31 @@ export class BookWriter {
     for (const kind of ["weapon", "armor", "gear", "spiritMagic", "runeMagic", "skill", "cult"]) {
       const list = byKind.get(kind);
       if (!list?.length) continue;
+      const datas = [];
+      for (const e of list) {
+        const d = buildItem(this.book, e);
+        if (!d) continue;
+        const hit = this.compendium?.item(d);
+        if (hit) linked(e, hit);
+        else datas.push(d);
+      }
+      if (!datas.length) continue;
       const entry = await this.packFor(kind);
       const folder = await this.folderIn(entry, "Item", kind);
-      const datas = list.map((e) => buildItem(this.book, e)).filter(Boolean);
       this.log(`Writing ${datas.length} ${KIND_INFO[kind].label}`);
       await this.upsert(entry, "Item", datas, folder);
     }
     // 2. Description journals (spells, cults, skills) and sorcery, grouped by type folder
     const journalKinds = new Map();
     for (const e of entities) {
-      if (e.kind === "chapter" || !needsJournal(e)) continue;
+      if (e.kind === "chapter" || !needsJournal(e) || inCompendium.has(e)) continue;
+      if (e.kind === "sorcery") {
+        const hit = this.compendium?.sorcery(e.name);
+        if (hit) {
+          linked(e, hit);
+          continue;
+        }
+      }
       if (!journalKinds.has(e.kind)) journalKinds.set(e.kind, []);
       journalKinds.get(e.kind).push(buildDescriptionJournal(this.book, e));
     }
@@ -201,20 +226,31 @@ export class BookWriter {
     // 3. NPCs and creatures (before chapters, so stat blocks in the text can link to them)
     const npcs = byKind.get("npc") || [];
     if (npcs.length) {
-      const entry = await this.packFor("npc");
-      const folder = await this.folderIn(entry, "Actor", "npc");
       const resolver = await ItemResolver.create(this.book.key);
       const datas = [];
       for (const e of npcs) {
         try {
-          datas.push(await this.planActor(e, resolver));
+          const plan = await this.planActor(e, resolver);
+          const hit = this.compendium?.actor(plan);
+          if (hit) {
+            linked(e, hit);
+            const key = plan.flags?.[MODULE_ID]?.npcKey;
+            if (key) this.actorLinks.set(key, `@UUID[${hit.uuid}]{${hit.name}}`);
+            continue;
+          }
+          datas.push(plan);
         } catch (err) {
           this.summary.warnings.push(`${e.name}: ${err.message}`);
           console.error(err);
         }
       }
-      this.log(`Writing ${datas.length} NPCs`);
-      const created = await this.upsert(entry, "Actor", datas, folder);
+      let created = [];
+      if (datas.length) {
+        const entry = await this.packFor("npc");
+        const folder = await this.folderIn(entry, "Actor", "npc");
+        this.log(`Writing ${datas.length} NPCs`);
+        created = await this.upsert(entry, "Actor", datas, folder);
+      }
       for (const actor of created) {
         const key = actor.flags?.[MODULE_ID]?.npcKey;
         if (key) this.actorLinks.set(key, `@UUID[${actor.uuid}]{${actor.name}}`);
@@ -287,7 +323,8 @@ export class BookWriter {
     for (const w of wanted) {
       switch (w.type) {
         case "weapon": {
-          const found = await resolver.get("weapon", w.name);
+          let found = null;
+          for (const n of weaponAlternates(w.name)) if ((found = await resolver.get("weapon", n))) break;
           let data;
           if (found) {
             data = found;
@@ -315,7 +352,13 @@ export class BookWriter {
           await wantSkill(w);
           break;
         case "passion": {
-          const data = fallbackNpcItem(w);
+          const found = await resolver.get("passion", w.base || w.name, w.name);
+          const data = found ?? fallbackNpcItem(w);
+          if (found) {
+            data.name = w.name;
+            data.system.subject = w.spec || data.system.subject || "";
+            data.system.chance = w.chance || 0;
+          }
           addItem(data);
           break;
         }
@@ -344,6 +387,25 @@ export class BookWriter {
   }
 }
 
+/** Other names a stat block's weapon may have in a compendium ("1H Battleaxe" is "Battle Axe"). */
+export function weaponAlternates(name) {
+  const out = [name];
+  let n = String(name || "")
+    .replace(/^[12]h\s+/i, "")
+    .replace(/,\s*(held|thrown|melee|missile)$/i, "")
+    .trim();
+  n = n.replace(/\bbattleaxe\b/i, "Battle Axe").replace(/\bgreataxe\b/i, "Great Axe").replace(/\bbroadaxe\b/i, "Broad-axe");
+  out.push(n);
+  const shield = n.match(/^(hand|small|medium|large|extra-large)\s+shield$/i);
+  if (shield) {
+    const size = shield[1][0].toUpperCase() + shield[1].slice(1).toLowerCase();
+    out.push(`Wood Shield, ${size}`, `Hide Shield, ${size}`, `Bronze Shield, ${size}`, `Wicker Shield, ${size}`);
+  }
+  if (/^club$/i.test(n)) out.push("Wooden Club");
+  if (/^spear$/i.test(n)) out.push(/^2h/i.test(name) ? "Long Spear" : "Short Spear");
+  return [...new Set(out)];
+}
+
 /** After creation: hit location HP deltas and skill gained chances so the sheet shows the printed values. */
 export async function finalizeActor(actor) {
   const totalHp = Number(actor.system?.attributes?.hitPoints?.max) || 0;
@@ -364,7 +426,7 @@ export async function finalizeActor(actor) {
   if (updates.length) await actor.updateEmbeddedDocuments("Item", updates);
 }
 
-/** Looks items up by type and name across all Item compendiums (this book's packs first). */
+/** Looks items up by type and name across all Item compendiums (this book's packs first, then the RuneQuest Compendium). */
 export class ItemResolver {
   static async create(bookKey) {
     const r = new ItemResolver();
@@ -381,10 +443,11 @@ export class ItemResolver {
         if (!r.index.has(i.type)) r.index.set(i.type, new Map());
         const m = r.index.get(i.type);
         const own = i.flags?.[MODULE_ID]?.bookKey === bookKey;
+        const curated = (pack.metadata.packageName ?? pack.metadata.package) === COMPENDIUM_ID;
         const prio = Number(i.flags?.rqg?.documentRqidFlags?.priority) || 0;
         for (const key of new Set([exactNorm(i.name), looseNorm(i.name), norm(i.name)])) {
           if (!m.has(key)) m.set(key, []);
-          m.get(key).push({ pack, id: i._id, own, prio, name: i.name });
+          m.get(key).push({ pack, id: i._id, own, curated, prio, name: i.name });
         }
       }
     }
@@ -398,7 +461,7 @@ export class ItemResolver {
     let hits =
       m.get(exactNorm(name)) || m.get(looseNorm(name)) || m.get(norm(name)) || (altName ? m.get(exactNorm(altName)) || m.get(looseNorm(altName)) || m.get(norm(altName)) : null);
     if (!hits?.length) return null;
-    hits = [...hits].sort((a, b) => Number(b.own) - Number(a.own) || b.prio - a.prio);
+    hits = [...hits].sort((a, b) => Number(b.own) - Number(a.own) || Number(b.curated) - Number(a.curated) || b.prio - a.prio);
     const doc = await hits[0].pack.getDocument(hits[0].id);
     if (!doc) return null;
     const data = doc.toObject();
