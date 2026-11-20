@@ -1,0 +1,75 @@
+# Publishes a Foundry release whenever module.json on main carries a version that has no release yet.
+# Assets: rqg-importer.zip (the installable module) and module.json (the manifest Foundry reads).
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - module.json
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: v
+        run: |
+          version=$(jq -r .version module.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Check the download URL matches the version
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          want="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${{ steps.v.outputs.version }}/rqg-importer.zip"
+          got=$(jq -r .download module.json)
+          if [ "$got" != "$want" ]; then
+            echo "module.json download is $got but should be $want"
+            exit 1
+          fi
+
+      - name: Build module zip
+        if: steps.v.outputs.exists == 'false'
+        run: zip -r rqg-importer.zip module.json README.md LICENSE THIRD-PARTY-NOTICES.md assets lang lib scripts styles templates
+
+      - name: Release notes from the README changelog
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          v="${{ steps.v.outputs.version }}"
+          awk -v head="# v $v" '
+            $0 == head { on = 1; next }
+            on && /^# v / { exit }
+            on { print }
+          ' README.md > notes.md
+          {
+            echo
+            echo "## Install"
+            echo
+            echo "In Foundry VTT v14, **Add-on Modules → Install Module**, and paste this manifest URL:"
+            echo
+            echo '```'
+            echo "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/module.json"
+            echo '```'
+          } >> notes.md
+
+      - name: Publish release
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          gh release create "v${{ steps.v.outputs.version }}" rqg-importer.zip module.json \
+            --target "$GITHUB_SHA" --title "v${{ steps.v.outputs.version }}" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
