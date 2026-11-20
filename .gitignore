@@ -1,0 +1,15 @@
+# Release packages are built and attached to GitHub releases, not committed
+*.zip
+*.tgz
+dist/
+
+# Local test material (book PDFs and extracted models must never be committed)
+*.pdf
+work/
+*.model.json
+*.entities.json
+
+node_modules/
+__pycache__/
+.DS_Store
+Thumbs.db

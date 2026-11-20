@@ -1,0 +1,74 @@
+<section class="rqgi-body">
+  <div class="rqgi-scroll">
+    <fieldset class="rqgi-step">
+      <legend><span class="rqgi-bubble">1</span> Book</legend>
+      <label class="rqgi-drop">
+        <input type="file" name="file" accept=".pdf,.json,application/pdf,application/json" {{#if state.busy}}disabled{{/if}}>
+        <i class="fa-solid fa-file-pdf"></i>
+        <span>{{#if fileName}}<strong>{{fileName}}</strong>{{else}}Drop a RuneQuest PDF here or click to choose{{/if}}</span>
+      </label>
+      <div class="rqgi-grid">
+        <label>Book title <input type="text" data-field="bookTitle" value="{{state.bookTitle}}" placeholder="RuneQuest Core Rulebook"></label>
+        <label>Book key <input type="text" data-field="bookKey" value="{{state.bookKey}}" placeholder="same as title"></label>
+        <label>From page <input type="number" min="1" data-field="from" value="{{state.from}}"></label>
+        <label>To page <input type="number" min="1" data-field="to" value="{{state.to}}" placeholder="last"></label>
+      </div>
+      <label class="rqgi-check"><input type="checkbox" data-field="detectFonts" {{checked state.detectFonts}}> Identify fonts (needed for bold labels; slower)</label>
+      <p class="hint">The book key keeps re-imports of the same book together. PDF pages are the PDF's own page numbers, not the printed ones.</p>
+    </fieldset>
+
+    <fieldset class="rqgi-step">
+      <legend><span class="rqgi-bubble">2</span> What to import</legend>
+      <div class="rqgi-kinds">
+        {{#each kinds}}
+        <label class="rqgi-check" title="{{help}}"><input type="checkbox" data-field="kind.{{kind}}" {{checked checked}}> {{label}}</label>
+        {{/each}}
+      </div>
+      <details>
+        <summary>Destination</summary>
+        <div class="rqgi-grid">
+          <label>Items <select data-field="target.Item">{{#each itemPacks}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+          <label>Actors <select data-field="target.Actor">{{#each actorPacks}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+          <label>Journals <select data-field="target.JournalEntry">{{#each journalPacks}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></label>
+        </div>
+        <p class="hint">New world compendiums are grouped in a sidebar folder named after the book, one compendium per type, entries in alphabetical order. Choosing an existing compendium (for example your compendium module) puts the entries in Book &gt; Type folders inside it.</p>
+      </details>
+      <label class="rqgi-check"><input type="checkbox" data-field="overwrite" {{checked state.overwrite}}> Replace entries already imported from this book</label>
+    </fieldset>
+
+    <div class="rqgi-actions">
+      <button type="button" data-action="analyze" {{#if state.busy}}disabled{{/if}}><i class="fa-solid fa-magnifying-glass"></i> Analyse</button>
+      {{#if state.busy}}<button type="button" data-action="cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>{{/if}}
+    </div>
+
+    {{#if state.progress}}
+    <div class="rqgi-progress"><div class="bar" style="width: {{progressPct}}%"></div><span>{{state.progress.label}}</span></div>
+    {{/if}}
+
+    {{#if hasEntities}}
+    <fieldset class="rqgi-step">
+      <legend><span class="rqgi-bubble">3</span> Review</legend>
+      <p class="hint">Untick anything you don't want. Click a type heading to toggle its entries.</p>
+      {{#each groups}}
+      <details class="rqgi-group {{#unless enabled}}disabled{{/unless}}">
+        <summary><a data-action="toggleKind" data-kind="{{kind}}">{{label}}</a> <span class="count">{{selected}} / {{count}}</span>{{#unless enabled}} <em>(type not selected)</em>{{/unless}}</summary>
+        <ul>
+          {{#each entries}}
+          <li><label><input type="checkbox" data-entry="{{key}}" {{checked checked}}> <span class="name">{{name}}</span> <span class="page">{{#if page}}p.{{page}}{{/if}}</span> <span class="extra">{{extra}}</span></label></li>
+          {{/each}}
+        </ul>
+      </details>
+      {{/each}}
+      <div class="rqgi-actions">
+        <button type="button" data-action="selectAll"><i class="fa-solid fa-check-double"></i> Select all</button>
+        <button type="button" data-action="downloadJson"><i class="fa-solid fa-download"></i> Parsed JSON</button>
+        <button type="button" class="primary" data-action="import" {{#if state.busy}}disabled{{/if}}><i class="fa-solid fa-file-import"></i> Import <span class="rqgi-total">{{totalSelected}}</span></button>
+      </div>
+    </fieldset>
+    {{/if}}
+
+    {{#if state.log.length}}
+    <div class="rqgi-log">{{#each state.log}}<div>{{this}}</div>{{/each}}</div>
+    {{/if}}
+  </div>
+</section>

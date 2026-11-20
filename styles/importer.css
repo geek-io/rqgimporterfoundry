@@ -1,0 +1,42 @@
+.rqg-importer .window-content { padding: 0; }
+.rqg-importer .rqgi-body { display: flex; flex-direction: column; height: 100%; }
+.rqg-importer .rqgi-scroll { overflow-y: auto; padding: 0.75rem 1rem; flex: 1; }
+.rqg-importer fieldset.rqgi-step { border: 1px solid var(--color-border-light-tertiary, #7a7971); border-radius: 6px; margin: 0 0 0.75rem; padding: 0.5rem 0.75rem 0.75rem; }
+.rqg-importer legend { font-weight: bold; padding: 0 0.35rem; display: flex; align-items: center; gap: 0.4rem; }
+.rqg-importer .rqgi-bubble { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: #5b2a1e; color: #f4ecd8; font-size: 0.8rem; }
+.rqg-importer .rqgi-drop { display: flex; align-items: center; gap: 0.6rem; border: 2px dashed #8b5a2b; border-radius: 6px; padding: 0.9rem; cursor: pointer; margin-bottom: 0.6rem; }
+.rqg-importer .rqgi-drop.hover { background: rgba(139, 90, 43, 0.15); }
+.rqg-importer .rqgi-drop i { font-size: 1.6rem; color: #8b2a1e; }
+.rqg-importer .rqgi-drop input[type=file] { display: none; }
+.rqg-importer .rqgi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem 0.8rem; }
+.rqg-importer .rqgi-grid label { display: flex; flex-direction: column; font-size: 0.85rem; gap: 0.15rem; }
+.rqg-importer .rqgi-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.2rem 0.6rem; margin-bottom: 0.4rem; }
+.rqg-importer .rqgi-check { display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; }
+.rqg-importer .hint { font-size: 0.8rem; opacity: 0.75; margin: 0.35rem 0 0; }
+.rqg-importer .rqgi-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin: 0.5rem 0; }
+.rqg-importer .rqgi-actions button { flex: 0 0 auto; width: auto; padding: 0 0.9rem; }
+.rqg-importer .rqgi-actions button.primary { background: #5b2a1e; color: #f4ecd8; }
+.rqg-importer .rqgi-progress { position: relative; height: 1.4rem; border-radius: 4px; background: rgba(0, 0, 0, 0.15); overflow: hidden; margin: 0.4rem 0; }
+.rqg-importer .rqgi-progress .bar { position: absolute; inset: 0 auto 0 0; background: #8b5a2b; transition: width 0.2s; }
+.rqg-importer .rqgi-progress span { position: relative; padding-left: 0.5rem; line-height: 1.4rem; font-size: 0.8rem; color: #fff; text-shadow: 0 0 2px #000; }
+.rqg-importer .rqgi-group { border-bottom: 1px solid rgba(0, 0, 0, 0.12); padding: 0.2rem 0; }
+.rqg-importer .rqgi-group.disabled { opacity: 0.5; }
+.rqg-importer .rqgi-group summary { cursor: pointer; font-weight: bold; }
+.rqg-importer .rqgi-group summary .count { font-weight: normal; opacity: 0.7; margin-left: 0.3rem; }
+.rqg-importer .rqgi-group ul { list-style: none; margin: 0.2rem 0 0.4rem; padding: 0 0 0 0.6rem; max-height: 260px; overflow-y: auto; }
+.rqg-importer .rqgi-group li label { display: flex; gap: 0.4rem; align-items: baseline; font-size: 0.85rem; }
+.rqg-importer .rqgi-group .page { opacity: 0.6; min-width: 3rem; }
+.rqg-importer .rqgi-group .extra { opacity: 0.7; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rqg-importer .rqgi-log { font-family: var(--font-mono, monospace); font-size: 0.75rem; max-height: 140px; overflow-y: auto; background: rgba(0, 0, 0, 0.08); border-radius: 4px; padding: 0.4rem; }
+.rqgi-sidebar-button { width: calc(100% - 1rem); margin: 0.25rem 0.5rem; }
+
+/* Imported journal content */
+.journal-entry-page .rqgi-sidebar, .editor-content .rqgi-sidebar { border-left: 4px solid #8b5a2b; background: rgba(139, 90, 43, 0.12); margin: 0.6rem 0; padding: 0.3rem 0.8rem; border-radius: 0 6px 6px 0; }
+.journal-entry-page .rqgi-sidebar h4 { margin: 0.3rem 0; }
+.journal-entry-page table.rqgi-table { width: auto; min-width: 50%; border-collapse: collapse; margin: 0.4rem 0; font-size: 0.9em; }
+.journal-entry-page table.rqgi-table th, .journal-entry-page table.rqgi-table td { border: 1px solid rgba(128, 128, 128, 0.45); padding: 0.15rem 0.45rem; text-align: left; }
+.journal-entry-page table.rqgi-table th { background: rgba(91, 42, 30, 0.25); }
+.journal-entry-page .rqgi-statblock { border: 1px solid #8b5a2b; border-radius: 6px; padding: 0.4rem 0.8rem; margin: 0.8rem 0; background: rgba(0, 0, 0, 0.06); }
+.journal-entry-page .rqgi-statblock h3 { margin-top: 0.2rem; }
+.journal-entry-page .rqgi-actor-link:empty { display: none; }
+.journal-entry-page .rqgi-source, .journal-entry-page .rqgi-note { opacity: 0.75; }
